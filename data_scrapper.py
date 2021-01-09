@@ -1,4 +1,4 @@
-from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException
+from selenium.common.exceptions import NoSuchElementException, ElementClickInterceptedException, ElementNotInteractableException, StaleElementReferenceException
 from selenium import webdriver
 import time
 import pandas as pd
@@ -38,7 +38,7 @@ def get_jobs(keyword, num_jobs, path, slp_time, verbose):
         except ElementClickInterceptedException:
             pass
 
-        time.sleep(.1)
+        time.sleep(.1 + 1)
 
         try:
             # clicking to the X.
@@ -56,8 +56,12 @@ def get_jobs(keyword, num_jobs, path, slp_time, verbose):
             if len(jobs) >= num_jobs:
                 break
 
-            job_button.click()  # You might
-            time.sleep(1)
+            try:
+                job_button.click()  # You might
+            except ElementNotInteractableException:
+                continue
+
+            time.sleep(1+2)
             collected_successfully = False
 
             while not collected_successfully:
@@ -72,7 +76,7 @@ def get_jobs(keyword, num_jobs, path, slp_time, verbose):
                         './/div[@class="jobDescriptionContent desc"]').text
                     collected_successfully = True
                 except:
-                    time.sleep(5)
+                    time.sleep(5+2)
 
             try:
                 salary_estimate = driver.find_element_by_xpath(
@@ -111,6 +115,9 @@ def get_jobs(keyword, num_jobs, path, slp_time, verbose):
                         './/div[@class="infoEntity"]//label[text()="Headquarters"]//following-sibling::*').text
                 except NoSuchElementException:
                     headquarters = -1
+                except ElementClickInterceptedException:
+                    print('Element Click Intercept happened')
+                    continue
 
                 try:
                     size = driver.find_element_by_xpath(
@@ -165,6 +172,10 @@ def get_jobs(keyword, num_jobs, path, slp_time, verbose):
                 revenue = -1
                 competitors = -1
 
+            except StaleElementReferenceException:
+                print("State Exception happened")
+                continue
+
             if verbose:
                 print("Headquarters: {}".format(headquarters))
                 print("Size: {}".format(size))
@@ -195,6 +206,7 @@ def get_jobs(keyword, num_jobs, path, slp_time, verbose):
         # Clicking on the "next page" button
         try:
             driver.find_element_by_xpath('.//li[@class="next"]//a').click()
+            print("This happened")
         except NoSuchElementException:
             print("Scraping terminated before reaching target number of jobs. Needed {}, got {}.".format(
                 num_jobs, len(jobs)))
